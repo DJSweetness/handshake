@@ -10,7 +10,7 @@ app.use(cors());
 // app.use(bodyParser);
 const router = express.Router();
 
-mongoose.connect("mongodb+srv://admin:T5F7KHtaB5wP3em@cluster0.9z21p.mongodb.net/chirps?retryWrites=true&w=majority", {
+mongoose.connect("[server]", {
   useNewUrlParser: true,
   auth: {
     authdb: 'admin'
@@ -26,6 +26,24 @@ connection.once("open", function() {
 });
 
 app.use("/", router);
+app.use(function (req, res, next) {
+
+  // Website you wish to allow to connect
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  // Request methods you wish to allow
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+  // Request headers you wish to allow
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+  // Set to true if you need the website to include cookies in the requests sent
+  // to the API (e.g. in case you use sessions)
+  res.setHeader('Access-Control-Allow-Credentials', true);
+
+  // Pass to next layer of middleware
+  next();
+});
 router.route("/").get(function(req, res) {
     Chirp.find({}, function(err, result) {
       if (err) {
@@ -41,11 +59,16 @@ app.use(express.json());
 app.post('/add', async function(req, res) {
   const chirpText = req.body.text;
 
-  try {
-    connection.collection('chirps').insertOne({ text: chirpText, upvotes: 0 });
-  } catch(e) {
-    console.log(e);
-  }
+  await connection.collection('chirps').insertOne({ text: chirpText, upvotes: 0 });
+
+  Chirp.find({ text: chirpText }, function(err, result) {
+    if (err) {
+      res.send(err);
+    } else {
+      console.log(result);
+      res.send(result);
+    }
+  });
 });
 
 app.post('/vote', async function(req, res) {
@@ -63,6 +86,8 @@ app.post('/vote', async function(req, res) {
       function(err, response) { 
           console.log(err, response);
       });
+
+  res.send({});
 });
 
 app.post('/delete', async function(req, res) {
